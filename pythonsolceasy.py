@@ -6,6 +6,10 @@ import re
 
 # Serve para poder testar se um objeto é do tipo match
 SRE_MATCH_TYPE = type(re.match("", ""))
+# 
+DEFAULT_TEMPLATE = "/home/diego/projetos/ethereum/solcbuild/templates/template.js"
+#
+SOLC = "/home/diego/projetos/solidity/build/solc/solc"
 
 
 class JSTemplate:
@@ -194,7 +198,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Script de compilação e lançamento de contratos em arquivos *.sol')
     parser.add_argument("contrato", help="O arquivo *.sol que será compilado")
     parser.add_argument("-t", "--template", help="O arquivo de template *.js que será usado como base para lançamento",
-                        default="/home/diego/projetos/ethereum/solcbuild/templates/template.js")
+                        default=DEFAULT_TEMPLATE)
     parser.add_argument("-m", "--manter", help="Se os arquivos *.bin e *.abi devem ser mantidos ou não",
                         action="store_true")
 
@@ -204,7 +208,7 @@ if __name__ == "__main__":
         raise Exception("Arquivo %s não enontrado." % args.contrato)
 
     # Comando de disparar o compilador passando o arquivo
-    comando = "solc -o . --bin --abi %s --overwrite" % args.contrato
+    comando = "%s -o . --bin --abi %s --overwrite" % (SOLC, args.contrato)
 
     terminal(comando.split(" "))
 
