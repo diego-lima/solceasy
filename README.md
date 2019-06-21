@@ -1,4 +1,4 @@
-# solcbuild
+# solceasy
 Um utilitário para compilação e deploy de contratos ethereum "from scratch"
 
 Funciona assim: você salva o código na linguagem Solidity de um smart contract(exemplo: MeuContrato) num arquivo MeuContrato.sol.
