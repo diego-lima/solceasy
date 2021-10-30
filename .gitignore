@@ -1,1 +1,7 @@
 .idea/
+solceasy.egg-info/
+jupyter-notebook
+dist/
+build/
+Untitled.ipynb
+.ipynb_checkpoints/

@@ -1,15 +1,22 @@
-from os.path import isfile
-from subprocess import check_output as terminal
-
 import argparse
+import pathlib
 import re
+from os import path
+from os.path import isfile
+from subprocess import CalledProcessError
+from subprocess import check_output as terminal
 
 # Serve para poder testar se um objeto é do tipo match
 SRE_MATCH_TYPE = type(re.match("", ""))
-# 
-DEFAULT_TEMPLATE = "/home/diego/projetos/ethereum/solcbuild/templates/template.js"
+
 #
-SOLC = "/home/diego/projetos/solidity/build/solc/solc"
+BASE_DIR = str(pathlib.Path(__file__).resolve().parent)
+DEFAULT_TEMPLATE = path.join(BASE_DIR, "templates/template.js")
+#
+SOLC = terminal('which solc'.split()).strip().decode()
+
+assert isfile(DEFAULT_TEMPLATE), f'{DEFAULT_TEMPLATE} não encontrado'
+assert isfile(SOLC), f'{SOLC} não encontrado'
 
 
 class JSTemplate:
@@ -88,7 +95,8 @@ class JSTemplate:
         template_out = self.template_string
 
         for var in self.variaveis:
-            template_out = template_out.replace(var.match.group(), var.valor, 1)
+            template_out = template_out.replace(
+                var.match.group(), var.valor, 1)
 
         return template_out
 
@@ -148,7 +156,8 @@ class Variavel:
     def __init__(self, variavel):
 
         if not isinstance(variavel, SRE_MATCH_TYPE):
-            raise Exception("Variável '%s' precisa ser _sre.SRE_Match, e não %s" % (variavel, type(variavel)))
+            raise Exception("Variável '%s' precisa ser _sre.SRE_Match, e não %s" % (
+                variavel, type(variavel)))
 
         self.match = variavel
         # Tirando os << >> e dando split
@@ -191,11 +200,12 @@ class Variavel:
         return self.nome
 
 
-if __name__ == "__main__":
+def main():
     """
     Script de compilação e lançamento de contratos em arquivos *.sol
     """
-    parser = argparse.ArgumentParser(description='Script de compilação e lançamento de contratos em arquivos *.sol')
+    parser = argparse.ArgumentParser(
+        description='Script de compilação e lançamento de contratos em arquivos *.sol')
     parser.add_argument("contrato", help="O arquivo *.sol que será compilado")
     parser.add_argument("-t", "--template", help="O arquivo de template *.js que será usado como base para lançamento",
                         default=DEFAULT_TEMPLATE)
@@ -207,18 +217,29 @@ if __name__ == "__main__":
     if not isfile(args.contrato):
         raise Exception("Arquivo %s não enontrado." % args.contrato)
 
+    filepath = pathlib.PurePath(args.contrato)
+    base_dir = filepath.parent
+
     # Comando de disparar o compilador passando o arquivo
-    comando = "%s -o . --bin --abi %s --overwrite" % (SOLC, args.contrato)
+    comando = f"{SOLC} -o {base_dir} --bin --abi {filepath} --overwrite"
 
-    terminal(comando.split(" "))
+    try:
+        terminal(comando.split(" "))
+    except CalledProcessError:
+        print('Verifique erros de saída.')
+        exit()
 
-    nome_contrato = args.contrato.split(".")[0]
+    name = filepath.name.split('.')[0]
+    abi = path.join(base_dir, f"{name}.abi")
+    bin = path.join(base_dir, f"{name}.bin")
+    js = path.join(base_dir, f"{name}.js")
 
-    if not isfile("%s.abi" % nome_contrato):
-        raise Exception("Verifique se o nome do arquivo é igual ao nome do contrato declarado dentro dele.")
+    if not isfile(abi):
+        print("Verifique se o nome do arquivo é igual ao nome do contrato declarado dentro dele.")
+        exit()
 
-    conteudo_abi = open("%s.abi" % nome_contrato)
-    conteudo_bin = open("%s.bin" % nome_contrato)
+    conteudo_abi = open(abi)
+    conteudo_bin = open(bin)
 
     jst = JSTemplate(args.template)
 
@@ -228,7 +249,7 @@ if __name__ == "__main__":
     conteudo_abi.close()
     conteudo_bin.close()
 
-    conteudo_js = open("%s.js" % nome_contrato, "w")
+    conteudo_js = open(js, "w")
 
     conteudo_js.write(jst.compilar())
 
@@ -236,5 +257,9 @@ if __name__ == "__main__":
 
     if not args.manter:
         # Apagar os arquivos *.abi e *.bin
-        comando = "rm {0}.bin {0}.abi".format(nome_contrato)
+        comando = f"rm {abi} {bin}"
         terminal(comando.split(" "))
+
+
+if __name__ == "__main__":
+    main()
